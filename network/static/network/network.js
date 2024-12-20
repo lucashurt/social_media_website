@@ -8,7 +8,6 @@ document.addEventListener("DOMContentLoaded", function() {
 })
 
 function load_posts(posts) {
-    event.preventDefault()
 
     document.querySelector("#Posts").style.display = "block";
     document.querySelector("#heading").style.display = "block";
@@ -27,17 +26,27 @@ function load_posts(posts) {
         .then(res => res.json())
             .then(posts => {
                 posts.forEach(post => {
-
                     const element = document.createElement("div");
+                    element.setAttribute("id",  `post${post.id}`);
                     element.innerHTML =`
                                  <div class="border" style="margin:1%">
-                                 <div id = "profile_button" style="margin: 10px">
-                                 <button class ="btn btn-light"><strong>${post.author}</strong></button>
-                                 <p>${post.body}</p>
+                                 <div style="margin: 10px">
+                                 <button class ="btn btn-light" id = "profile_button"><strong>${post.author}</strong></button>
+                                 <div id = "edit_div"></div> 
+                                 <p id="body">${post.body}</p>
                                  <p style = "color:grey">${post.timestamp}</p>
                                  <button class = "btn btn-sm btn-outline-primary">Like </button> ${post.likes}
                                  </div>
                                  </div>`
+
+                    if(post.edit === true) {
+                        element.querySelector("#edit_div").innerHTML=`<button id = "edit_button" class = "btn btn-sm btn-outline-primary">Edit</button>`
+                        element.querySelector("#edit_button").addEventListener("click", () => {
+                            element.querySelector("#body").innerHTML=`<textarea id = "edit_body" placeholder="${post.body}"></textarea> <br> <button id="submit_edit" class = "btn btn-sm btn-outline-primary">Submit</button>`
+                            element.querySelector("#submit_edit").addEventListener("click", () => edit_post(post.id,element.querySelector("#edit_body").value))
+                        })
+                    }
+
                     element.querySelector("#profile_button").addEventListener("click", () => load_profile(post.author));
             postsContainer.appendChild(element);
         })
@@ -92,15 +101,26 @@ function load_profile(username){
     .then(posts => {
         posts.forEach(post => {
                     const element = document.createElement("div");
+                    element.setAttribute("id", `post${post.id}`);
                     element.innerHTML =`
                                  <div class="border" style="margin:1%">
                                  <div id = "profile_button" style="margin: 10px">
                                  <button class ="btn btn-light"><strong>${post.author}</strong></button>
-                                 <p>${post.body}</p>
+                                 <div id = "edit_div"></div> 
+                                 <p id="body">${post.body}</p>
                                  <p style = "color:grey">${post.timestamp}</p>
-                                 <button class = "btn btn-sm btn-outline-primary">Like </button> ${post.likes}
+                                 <button class = "btn btn-sm btn-outline-primary">Like</button> ${post.likes}
                                  </div>
                                  </div>`
+
+            if(post.edit === true) {
+                element.querySelector("#edit_div").innerHTML=`<button id = "edit_button" class = "btn btn-sm btn-outline-primary">Edit</button>`
+                element.querySelector("#edit_button").addEventListener("click", () => {
+                    element.querySelector("#body").innerHTML=`<textarea id = "edit_body" placeholder="${post.body}"></textarea> <br> <button id="submit_edit" class = "btn btn-sm btn-outline-primary">Submit</button>`
+                    element.querySelector("#submit_edit").addEventListener("click", () => edit_post(post.id,element.querySelector("#edit_body").value))
+                        })
+                    }
+
             postsContainer.appendChild(element);
         })
     })
@@ -113,4 +133,32 @@ function follow_user(username) {
 function unfollow_user(username) {
     fetch(`/unfollow/${username}`)
         .then(() => {load_profile(username)})
+}
+
+function edit_post(post_id,new_body) {
+    fetch(`/edit/${post_id}`,{
+        method: "PUT",
+        headers:{
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            body:new_body
+        })
+    })
+        .then(res => res.json())
+        .then(data => {
+            console.log(data)
+            const post_element = document.querySelector(`#post${post_id}`)
+            if(post_element){
+                const body_element = post_element.querySelector("#body");
+                body_element.textContent = new_body;
+            }
+            else{
+                console.log("NOPE")
+            }
+        })
+
+        .catch(error => {
+            console.log(error)
+        })
 }

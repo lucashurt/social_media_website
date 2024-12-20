@@ -8,12 +8,12 @@ class User(AbstractUser):
 
 
 class Post(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE,related_name='posts')
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='posted')
     body = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
-    likes = models.IntegerField(default=0)
-    liked = models.BooleanField(default=False)
+    liked_by = models.ManyToManyField(User, related_name='liked_posts', blank=False)
+    edit = models.BooleanField(default=False)
+
 
     def serialize(self):
         return {
@@ -21,5 +21,7 @@ class Post(models.Model):
             'author': self.author.username,
             'body': self.body,
             'timestamp': self.timestamp.strftime("%b %d %Y, %I:%M %p"),
-            'likes': self.likes,
+            'likes': self.liked_by.count(),
+            "edit": self.edit,
+
         }

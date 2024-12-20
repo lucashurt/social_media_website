@@ -2,7 +2,7 @@ import json
 
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
@@ -36,7 +36,6 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     return HttpResponseRedirect(reverse("index"))
-
 
 def register(request):
     if request.method == "POST":
@@ -76,7 +75,6 @@ def compose(request):
         return JsonResponse({"Error": "Empty body."}, status=400)
 
     post = Post(
-        user=request.user,
         author=request.user,
         body=body,
     )
@@ -92,12 +90,22 @@ def load_posts(request,inbox):
         return JsonResponse({"Error": "Invalid inbox."}, status=400)
 
     posts = posts.order_by("-timestamp").all()
+
+    for post in posts:
+        if post.author == request.user:
+            post.edit = True
+
     return JsonResponse([post.serialize() for post in posts], safe=False)
 
 def load_profile_posts(request,username):
 
     user = User.objects.get(username=username)
     posts = Post.objects.filter(author=user).order_by("-timestamp").all()
+
+    if user == request.user:
+        for post in posts:
+            post.edit = True
+
     return JsonResponse([post.serialize() for post in posts], safe=False)
 
 def load_profile(request,username):
@@ -125,3 +133,19 @@ def unfollow(request,username):
     follower.following.remove(user)
     user.followers.remove(follower)
     return JsonResponse({"Success": "Unfollowed"}, safe=False)
+
+@csrf_exempt
+def edit_post(request,post_id):
+    try:
+        post = Post.objects.get(id=post_id)
+
+        if post.author != request.user:
+            return JsonResponse({"Error": "Invalid user."}, status=400)
+        data = json.loads(request.body)
+        post.body = data.get("body","")
+        post.save()
+        return JsonResponse({"Message": "Post updated"}, safe=False)
+
+    except Exception as e:
+        print(e)
+        return JsonResponse({"Error": f"error while editing post: {e}"}, status=400)

@@ -11,6 +11,7 @@ urlpatterns = [
 
     path("posts",views.compose,name="compose"),
     path("posts/<str:inbox>",views.load_posts,name="posts"),
+    path("edit/<int:post_id>",views.edit_post,name="post"),
     path("profileposts/<str:username>", views.load_profile_posts, name="username"),
     path("profile/<str:username>",views.load_profile,name="username"),
     path("follow/<str:username>",views.follow,name="follow"),
