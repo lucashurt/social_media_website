@@ -1,0 +1,23 @@
+{% extends "network/layout.html" %}
+{% load static %}
+
+{% block body %}
+    <div id="Profile">
+        <h1 id = "username_display" style = "text-align: center; margin-top: 20px" >{{ user }}</h1>
+        {% for post in posts %}
+             <div class="border" style="margin:1%">
+                 <div id = "profile_button" style="margin: 10px">
+                     <button class ="btn btn-light"><strong>{{post.author}}</strong></button>
+                     <p>{{post.body}}</p>
+                     <p style = "color:grey">{{post.timestamp}}</p>
+                     <button class = "btn btn-sm btn-outline-primary">Like </button> {{post.likes}}
+                 </div>
+             </div>
+        {% endfor %}
+    </div>
+
+{% endblock %}
+
+{% block script %}
+<script src="{% static 'network/network.js' %}"></script>
+{% endblock %}

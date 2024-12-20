@@ -15,10 +15,8 @@ function load_posts(posts) {
     document.querySelector("#Create").style.display = "none";
     document.querySelector("#Profile").style.display = "none";
 
-
     const postsContainer = document.querySelector("#Posts");
     postsContainer.innerHTML = "";
-
 
     document.querySelector("#heading").innerHTML = `<h1>${posts}</h1>`;
     if(posts ==="All") {
@@ -47,7 +45,6 @@ function load_posts(posts) {
         .catch(error => {
             console.error("Error loading posts:", error);
         });
-
 }
 
 function submit_post() {
