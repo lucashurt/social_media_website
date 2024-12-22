@@ -95,7 +95,7 @@ def load_posts(request,inbox):
         if post.author == request.user:
             post.edit = True
 
-    return JsonResponse([post.serialize() for post in posts], safe=False)
+    return JsonResponse([post.serialize(request.user) for post in posts], safe=False)
 
 def load_profile_posts(request,username):
 
@@ -106,7 +106,7 @@ def load_profile_posts(request,username):
         for post in posts:
             post.edit = True
 
-    return JsonResponse([post.serialize() for post in posts], safe=False)
+    return JsonResponse([post.serialize(request.user) for post in posts], safe=False)
 
 def load_profile(request,username):
     user = User.objects.get(username=username)
@@ -149,3 +149,19 @@ def edit_post(request,post_id):
     except Exception as e:
         print(e)
         return JsonResponse({"Error": f"error while editing post: {e}"}, status=400)
+
+@csrf_exempt
+def like_post(request, post_id):
+        user = User.objects.get(username=request.user)
+        post = Post.objects.get(id=post_id)
+        post.liked_by.add(user)
+        post.save()
+        return JsonResponse({"Message": "Post liked", "likes": post.liked_by.count()}, safe=False)
+
+@csrf_exempt
+def dislike_post(request, post_id):
+        user = User.objects.get(username=request.user)
+        post = Post.objects.get(id=post_id)
+        post.liked_by.remove(user)
+        post.save()
+        return JsonResponse({"Message": "Post disliked", "likes": post.liked_by.count()}, safe=False)

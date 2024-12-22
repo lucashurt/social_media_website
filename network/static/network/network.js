@@ -1,10 +1,12 @@
 document.addEventListener("DOMContentLoaded", function() {
-    document.querySelector("#all_button").addEventListener("click", () => load_posts("All"))
-    document.querySelector("#following_button").addEventListener("click", () => load_posts("Following"))
-    document.querySelector("#submit_post").addEventListener("click", submit_post)
-    document.querySelector("#user_profile").addEventListener("click", () => load_profile(document.querySelector("#user_profile").innerText))
+   document.querySelector("#all_button").addEventListener("click", () => load_posts("All"))
 
     load_posts("All");
+
+    document.querySelector("#submit_post").addEventListener("click", submit_post)
+    document.querySelector("#user_profile").addEventListener("click", () => load_profile(document.querySelector("#user_profile").innerText))
+    document.querySelector("#following_button").addEventListener("click", () => load_posts("Following"))
+
 })
 
 function load_posts(posts) {
@@ -35,18 +37,30 @@ function load_posts(posts) {
                                  <div id = "edit_div"></div> 
                                  <p id="body">${post.body}</p>
                                  <p style = "color:grey">${post.timestamp}</p>
-                                 <button class = "btn btn-sm btn-outline-primary">Like </button> ${post.likes}
+                                 <button id="like_button" class = "btn btn-sm btn-outline-primary"></button> 
+                                 <div class ="row" style = "margin-left:1px">Likes: <p id="like_number">${post.likes}</p></div>
                                  </div>
                                  </div>`
 
-                    if(post.edit === true) {
-                        element.querySelector("#edit_div").innerHTML=`<button id = "edit_button" class = "btn btn-sm btn-outline-primary">Edit</button>`
-                        element.querySelector("#edit_button").addEventListener("click", () => {
-                            element.querySelector("#body").innerHTML=`<textarea id = "edit_body" placeholder="${post.body}"></textarea> <br> <button id="submit_edit" class = "btn btn-sm btn-outline-primary">Submit</button>`
-                            element.querySelector("#submit_edit").addEventListener("click", () => edit_post(post.id,element.querySelector("#edit_body").value))
-                        })
+                    if(post.liked === false){
+                        element.querySelector("#like_button").innerText = "Like"
+                        element.querySelector("#like_button").onclick =  () => like_post(post.id)
+                    }
+                    else {
+                        element.querySelector("#like_button").innerText = "Remove Like"
+                        element.querySelector("#like_button").onclick = () => dislike_post(post.id)
                     }
 
+                    if(post.edit === true) {
+                        element.querySelector("#edit_div").innerHTML=`<button id = "edit_button" class = "btn btn-sm btn-outline-primary">Edit</button>`
+
+                        element.querySelector("#edit_button").addEventListener("click", () =>{
+                            const current_body = element.querySelector("#body").textContent;
+                            element.querySelector("#body").innerHTML=`<textarea id = "edit_body" placeholder="${current_body}"></textarea> <br> <button id="submit_edit" class = "btn btn-sm btn-outline-primary">Submit</button>`
+                            element.querySelector("#submit_edit").addEventListener("click", () => edit_post(post.id,element.querySelector("#edit_body").value))
+
+                    })
+                    }
                     element.querySelector("#profile_button").addEventListener("click", () => load_profile(post.author));
             postsContainer.appendChild(element);
         })
@@ -101,17 +115,27 @@ function load_profile(username){
     .then(posts => {
         posts.forEach(post => {
                     const element = document.createElement("div");
-                    element.setAttribute("id", `post${post.id}`);
+                    element.setAttribute("id",  `post${post.id}`);
                     element.innerHTML =`
                                  <div class="border" style="margin:1%">
-                                 <div id = "profile_button" style="margin: 10px">
-                                 <button class ="btn btn-light"><strong>${post.author}</strong></button>
+                                 <div style="margin: 10px">
+                                 <button class ="btn btn-light" id = "profile_button"><strong>${post.author}</strong></button>
                                  <div id = "edit_div"></div> 
                                  <p id="body">${post.body}</p>
                                  <p style = "color:grey">${post.timestamp}</p>
-                                 <button class = "btn btn-sm btn-outline-primary">Like</button> ${post.likes}
+                                 <button id="like_button" class = "btn btn-sm btn-outline-primary"></button> 
+                                 <div class ="row" style = "margin-left:1px">Likes: <p id="like_number">${post.likes}</p></div>
                                  </div>
                                  </div>`
+
+                    if(post.liked === false){
+                        element.querySelector("#like_button").innerText = "Like"
+                        element.querySelector("#like_button").onclick =  () => like_post(post.id)
+                    }
+                    else {
+                        element.querySelector("#like_button").innerText = "Remove Like"
+                        element.querySelector("#like_button").onclick = () => dislike_post(post.id)
+                    }
 
             if(post.edit === true) {
                 element.querySelector("#edit_div").innerHTML=`<button id = "edit_button" class = "btn btn-sm btn-outline-primary">Edit</button>`
@@ -147,14 +171,11 @@ function edit_post(post_id,new_body) {
     })
         .then(res => res.json())
         .then(data => {
-            console.log(data)
             const post_element = document.querySelector(`#post${post_id}`)
             if(post_element){
                 const body_element = post_element.querySelector("#body");
+                body_element.querySelector("#edit_body").placeholder=new_body;
                 body_element.textContent = new_body;
-            }
-            else{
-                console.log("NOPE")
             }
         })
 
@@ -162,3 +183,47 @@ function edit_post(post_id,new_body) {
             console.log(error)
         })
 }
+function like_post(post_id) {
+    fetch(`/like/${post_id}`, {
+        method: "PUT",
+    })
+        .then((response) => response.json())
+        .then((data) => {
+            console.log(data);
+            const postElement = document.querySelector(`#post${post_id}`);
+            if (postElement) {
+                const likeButton = postElement.querySelector("#like_button");
+                const likeNumber = postElement.querySelector("#like_number");
+
+                likeButton.innerText = "Dislike";
+                likeButton.onclick = () => dislike_post(post_id)
+
+                likeNumber.textContent = parseInt(likeNumber.textContent) + 1;
+            }
+        })
+        .catch((error) => {
+            console.error("Error liking post:", error);
+        });
+}
+
+function dislike_post(post_id) {
+    fetch(`/dislike/${post_id}`, {
+        method: "PUT",
+    })
+        .then((response) => response.json())
+        .then((data) => {
+            console.log(data);
+            const postElement = document.querySelector(`#post${post_id}`);
+            if (postElement) {
+                const likeButton = postElement.querySelector("#like_button");
+                const likeNumber = postElement.querySelector("#like_number");
+
+                likeButton.innerText = "Like";
+                likeButton.onclick = () => like_post(post_id)
+
+                likeNumber.textContent = parseInt(likeNumber.textContent) - 1;
+            }
+        })
+        .catch((error) => {
+            console.error("Error disliking post:", error);
+        });}

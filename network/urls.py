@@ -16,4 +16,6 @@ urlpatterns = [
     path("profile/<str:username>",views.load_profile,name="username"),
     path("follow/<str:username>",views.follow,name="follow"),
     path("unfollow/<str:username>",views.unfollow,name="unfollow"),
+    path("like/<int:post_id>",views.like_post,name="like"),
+    path("dislike/<int:post_id>",views.dislike_post,name="unlike"),
 ]
