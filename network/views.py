@@ -1,5 +1,5 @@
 import json
-
+from django.core.paginator import Paginator
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
 from django.http import HttpResponseRedirect, JsonResponse
@@ -95,7 +95,17 @@ def load_posts(request,inbox):
         if post.author == request.user:
             post.edit = True
 
-    return JsonResponse([post.serialize(request.user) for post in posts], safe=False)
+    page = int(request.GET.get("page",1))
+    limit = request.GET.get("limit",10)
+    paginator = Paginator(posts, limit)
+    current_page = paginator.get_page(page)
+
+    return JsonResponse({
+        "posts": [post.serialize(request.user) for post in current_page],
+        "has_next_page":current_page.has_next(),
+        "has_previous_page":current_page.has_previous()}
+        ,safe=False)
+
 
 def load_profile_posts(request,username):
 
@@ -106,18 +116,28 @@ def load_profile_posts(request,username):
         for post in posts:
             post.edit = True
 
-    return JsonResponse([post.serialize(request.user) for post in posts], safe=False)
+    page = int(request.GET.get("page",1))
+    limit = request.GET.get("limit",10)
+    paginator = Paginator(posts, limit)
+    current_page = paginator.get_page(page)
+
+    return JsonResponse({
+        "posts":[post.serialize(request.user) for post in current_page],
+        "has_next_page":current_page.has_next(),
+        "has_previous_page":current_page.has_previous()},safe=False)
 
 def load_profile(request,username):
     user = User.objects.get(username=username)
     is_following = request.user in user.followers.all()
+    not_user = request.user != user
     return JsonResponse({
     'id': user.id,
     'username': user.username,
     'email': user.email,
     'following': user.following.count(),
     'followers': user.followers.count(),
-    "is_following": is_following
+    "is_following": is_following,
+    "not_user":not_user,
     })
 
 def follow(request,username):

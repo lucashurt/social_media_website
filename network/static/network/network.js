@@ -9,8 +9,18 @@ document.addEventListener("DOMContentLoaded", function() {
 
 })
 
-function load_posts(posts) {
 
+let currentAllPage = 1
+let currentFollowingPage = 1
+
+function load_posts(inbox) {
+    let currentPage = 1
+    if(inbox === "All") {
+        currentPage = currentAllPage
+    }
+    else{
+        currentPage = currentFollowingPage
+    }
     document.querySelector("#Posts").style.display = "block";
     document.querySelector("#heading").style.display = "block";
     document.querySelector("#Create").style.display = "none";
@@ -19,14 +29,15 @@ function load_posts(posts) {
     const postsContainer = document.querySelector("#Posts");
     postsContainer.innerHTML = "";
 
-    document.querySelector("#heading").innerHTML = `<h1>${posts}</h1>`;
-    if(posts ==="All") {
+    document.querySelector("#heading").innerHTML = `<h1>${inbox}</h1>`;
+    if(inbox ==="All") {
         document.querySelector("#Create").style.display = "block";
     }
 
-    fetch(`/posts/${posts}`)
+    fetch(`/posts/${inbox}?page=${currentPage}`)
         .then(res => res.json())
-            .then(posts => {
+            .then(data => {
+                const posts = data.posts
                 posts.forEach(post => {
                     const element = document.createElement("div");
                     element.setAttribute("id",  `post${post.id}`);
@@ -64,7 +75,37 @@ function load_posts(posts) {
                     element.querySelector("#profile_button").addEventListener("click", () => load_profile(post.author));
             postsContainer.appendChild(element);
         })
-    })
+            const paginationContainer = document.createElement("div");
+            paginationContainer.innerHTML = `
+                <button class="btn btn-sm btn-primary" id="prevPage" ${!data.has_previous_page ? "disabled" : ""}>Previous</button>
+                <button class="btn btn-sm btn-primary" id="nextPage" ${!data.has_next_page ? "disabled" : ""}>Next</button>`;
+            postsContainer.appendChild(paginationContainer);
+
+            document.querySelector("#prevPage").addEventListener("click", () => {
+                if(inbox ==="All") {
+                    if (currentAllPage > 1) {
+                    currentAllPage--;
+                    load_posts(inbox)
+                }
+                }
+                else {
+                    if (currentFollowingPage > 1) {
+                        currentFollowingPage--;
+                        load_posts(inbox)
+
+                    }
+                }
+            });
+            document.querySelector("#nextPage").addEventListener("click", () => {
+                if(inbox ==="All") {
+                    currentAllPage++;
+                }
+                else {
+                    currentFollowingPage++;
+                }
+                load_posts(inbox);
+            });
+        })
         .catch(error => {
             console.error("Error loading posts:", error);
         });
@@ -84,35 +125,49 @@ function submit_post() {
         })
 }
 
+let profilePageNumbers = {}
 function load_profile(username){
     document.querySelector("#Create").style.display = "none";
     document.querySelector("#Posts").style.display = "none";
     document.querySelector("#heading").style.display = "none";
     document.querySelector("#Profile").style.display = "block";
+    document.querySelector("#follow_button_div").style.display = "block"
+
     document.querySelector("#username_display").innerText = username;
+    let pageNumber = 0
 
-    postsContainer = document.querySelector("#profile_posts");
+    if(username in profilePageNumbers){
+        pageNumber = profilePageNumbers[username];}
+    else{
+        profilePageNumbers[username] = 1;
+        pageNumber = profilePageNumbers[username];
+    }
+    const postsContainer = document.querySelector("#profile_posts");
     postsContainer.innerHTML = ""
-
 
     fetch(`/profile/${username}`)
     .then(response => response.json())
      .then(user => {
+         document.querySelector("#followers_label").innerText = `Followers:${user.followers} Following:${user.following}`
 
          if(user.is_following){
             document.querySelector("#follow_button").innerText = "Unfollow";
             document.querySelector("#follow_button").onclick = ()=> unfollow_user(username)
          }
-         else{
+         else if(user.not_user){
              document.querySelector("#follow_button").innerText = "Follow";
              document.querySelector("#follow_button").onclick = ()=> follow_user(username)
         }
-         document.querySelector("#followers_label").innerText = `Followers:${user.followers} Following:${user.following}`
+         else{
+             document.querySelector("#follow_button_div").style.display = "none"
+         }
      })
 
-    fetch(`/profileposts/${username}`)
+    fetch(`/profileposts/${username}?page=${pageNumber}`)
     .then(res => res.json())
-    .then(posts => {
+    .then(data => {
+
+        const posts = data.posts
         posts.forEach(post => {
                     const element = document.createElement("div");
                     element.setAttribute("id",  `post${post.id}`);
@@ -147,6 +202,22 @@ function load_profile(username){
 
             postsContainer.appendChild(element);
         })
+        const paginationContainer = document.createElement("div");
+        paginationContainer.innerHTML = `
+        <button class = "btn btn-sm btn-primary" id = "previousPage" ${!data.has_previous_page ? "disabled": ""}>Previous</button>
+        <button class = "btn btn-sm btn-primary" id = "followingPage" ${!data.has_next_page ? "disabled": ""}>Next</button> `
+        postsContainer.appendChild(paginationContainer);
+
+        document.querySelector("#previousPage").addEventListener("click", () => {
+            if(pageNumber > 1){
+                profilePageNumbers[username]--;
+                load_profile(username)
+            }
+        })
+        document.querySelector("#followingPage").addEventListener("click", () => {
+            profilePageNumbers[username]++;
+            load_profile(username)
+        })
     })
 }
 
@@ -170,7 +241,7 @@ function edit_post(post_id,new_body) {
         })
     })
         .then(res => res.json())
-        .then(data => {
+        .then(() => {
             const post_element = document.querySelector(`#post${post_id}`)
             if(post_element){
                 const body_element = post_element.querySelector("#body");
@@ -187,9 +258,8 @@ function like_post(post_id) {
     fetch(`/like/${post_id}`, {
         method: "PUT",
     })
-        .then((response) => response.json())
-        .then((data) => {
-            console.log(data);
+        .then((res) => res.json())
+        .then(() => {
             const postElement = document.querySelector(`#post${post_id}`);
             if (postElement) {
                 const likeButton = postElement.querySelector("#like_button");
@@ -210,9 +280,8 @@ function dislike_post(post_id) {
     fetch(`/dislike/${post_id}`, {
         method: "PUT",
     })
-        .then((response) => response.json())
-        .then((data) => {
-            console.log(data);
+        .then((res) => res.json())
+        .then(() => {
             const postElement = document.querySelector(`#post${post_id}`);
             if (postElement) {
                 const likeButton = postElement.querySelector("#like_button");

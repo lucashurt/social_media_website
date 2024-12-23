@@ -6,17 +6,19 @@
 
     <div id="Profile">
         <div id="non_posts" style ="text-align: center">
-        <h1 id = "username_display" style = "text-align: center; margin-top: 20px"></h1>
+            <h1 id = "username_display" style = "text-align: center; margin-top: 20px"></h1>
+        <div id = "follow_button_div">
             {% if user.is_authenticated %}
-                <button class = "btn btn-primary" id="follow_button"></button> <h6 id="followers_label"></h6>
+                <button class = "btn btn-primary" id="follow_button"></button>
             {% endif %}
-
+       </div>
+        <h6 id="followers_label"></h6>
         </div>
         <div id="profile_posts">
         </div>
     </div>
     <div id="Create">
-        {% if user.is_authenticated %}
+        {%  if user.is_authenticated %}
         <form id = "postForm">
         {% csrf_token %}
             <div class="border" style="margin:1%">
